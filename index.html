@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+  <title>Coverflow Flipbook</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.css" />
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
+      background: #111;
+      touch-action: none;
+    }
+
+    .swiper {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.2s ease-in;
+    }
+
+    .swiper.swiper-loaded {
+      opacity: 1;
+    }
+
+    .swiper-slide {
+      width: auto;
+      height: auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .slide-inner {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+    }
+
+    .slide-inner img {
+      width: auto;
+      height: auto;
+      max-height: 90vh;
+      max-width: 90vw;
+      object-fit: contain;
+      border-radius: 12px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+      transition: transform 0.2s ease;
+      cursor: pointer;
+      touch-action: none;
+    }
+
+    .page1-breath {
+      animation: breatheZoom 1.4s ease-out 1;
+    }
+
+    @keyframes breatheZoom {
+      0% {
+        transform: scale(1) brightness(0.3);
+        opacity: 0;
+      }
+      60% {
+        transform: scale(1.03) brightness(1.2);
+        opacity: 1;
+      }
+      100% {
+        transform: scale(1) brightness(1);
+      }
+    }
+
+    .swiper-button-next,
+    .swiper-button-prev {
+      color: white;
+      width: 38px;
+      height: 38px;
+      background-color: transparent;
+      border-radius: 50%;
+    }
+
+    .swiper-button-next::after,
+    .swiper-button-prev::after {
+      font-size: 22px;
+    }
+
+    @media (max-width: 768px) {
+      .slide-inner img {
+        max-height: 80vh;
+        max-width: 95vw;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="swiper" id="swiperContainer" style="visibility: hidden;">
+    <div class="swiper-wrapper" id="swiperWrapper"></div>
+    <div class="swiper-button-next"></div>
+    <div class="swiper-button-prev"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.js"></script>
+  <script>
+    const wrapper = document.getElementById('swiperWrapper');
+    const container = document.getElementById('swiperContainer');
+
+    const MAX_PAGES = 60;
+    let stopLoading = false;
+
+    async function preloadImagesAndAppendSlides() {
+      for (let i = 1; i <= MAX_PAGES; i++) {
+        if (stopLoading) break;
+
+        const img = new Image();
+        img.src = `pages/page${i}.jpg`;
+
+        await new Promise((resolve) => {
+          img.onload = () => {
+            const slide = document.createElement('div');
+            slide.className = 'swiper-slide';
+
+            const imgClass = i === 1 ? 'page1-img' : '';
+            slide.innerHTML = `
+              <div class="slide-inner">
+                <img src="pages/page${i}.jpg" data-index="${i}" class="${imgClass}" />
+              </div>
+            `;
+            wrapper.appendChild(slide);
+            resolve();
+          };
+          img.onerror = () => {
+            stopLoading = true;
+            resolve();
+          };
+        });
+      }
+    }
+
+    let swiper;
+
+    window.addEventListener('load', async () => {
+      await preloadImagesAndAppendSlides();
+
+      swiper = new Swiper('.swiper', {
+        effect: 'coverflow',
+        grabCursor: true,
+        centeredSlides: true,
+        slidesPerView: 'auto',
+        slideToClickedSlide: true,
+        watchSlidesProgress: true,
+        initialSlide: 0,
+        coverflowEffect: {
+          rotate: 8,
+          stretch: -10,
+          depth: 220,
+          modifier: 1,
+          slideShadows: true
+        },
+        navigation: {
+          nextEl: '.swiper-button-next',
+          prevEl: '.swiper-button-prev',
+        },
+        keyboard: {
+          enabled: true,
+          onlyInViewport: true,
+        },
+        loop: false,
+        on: {
+          init: function () {
+            this.slideTo(0, 0, false);
+            container.style.visibility = 'visible';
+            container.classList.add('swiper-loaded');
+
+            setTimeout(() => {
+              const page1 = document.querySelector('.page1-img');
+              if (page1) {
+                page1.classList.add('page1-breath');
+              }
+            }, 100);
+          },
+          slideChange: function () {
+            resetZoom();
+          }
+        }
+      });
+    });
+
+    // --- Zoom Logic ---
+    let scale = 1;
+    let activeImage = null;
+
+    function resetZoom() {
+      const allImages = document.querySelectorAll('.swiper-slide img');
+      allImages.forEach(img => {
+        img.style.transform = 'scale(1)';
+      });
+      scale = 1;
+      activeImage = null;
+    }
+
+    document.addEventListener('wheel', function (e) {
+      if (e.ctrlKey) {
+        e.preventDefault();
+        activeImage = document.querySelector('.swiper-slide-active img');
+        scale += e.deltaY * -0.002;
+        scale = Math.min(Math.max(1, scale), 3);
+        activeImage.style.transform = `scale(${scale})`;
+      }
+    }, { passive: false });
+
+    document.addEventListener('dblclick', () => {
+      activeImage = document.querySelector('.swiper-slide-active img');
+      if (activeImage) {
+        scale = scale === 1 ? 2 : 1;
+        activeImage.style.transform = `scale(${scale})`;
+      }
+    });
+
+    // --- Pinch Zoom + Double Tap Toggle ---
+    let initialDistance = null;
+    let touchZoomImage = null;
+    let lastTapTime = 0;
+
+    function getDistance(touches) {
+      const dx = touches[0].clientX - touches[1].clientX;
+      const dy = touches[0].clientY - touches[1].clientY;
+      return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    document.addEventListener('touchstart', function (e) {
+      const now = new Date().getTime();
+      if (e.touches.length === 2) {
+        initialDistance = getDistance(e.touches);
+        touchZoomImage = document.querySelector('.swiper-slide-active img');
+      } else if (e.touches.length === 1) {
+        if (now - lastTapTime < 300) {
+          const img = document.querySelector('.swiper-slide-active img');
+          if (img) {
+            scale = scale === 1 ? 2 : 1;
+            img.style.transform = `scale(${scale})`;
+          }
+        }
+        lastTapTime = now;
+      }
+    });
+
+    document.addEventListener('touchmove', function (e) {
+      if (e.touches.length === 2 && initialDistance && touchZoomImage) {
+        const currentDistance = getDistance(e.touches);
+        const delta = (currentDistance - initialDistance) * 0.005;
+        scale += delta;
+        scale = Math.min(Math.max(1, scale), 3);
+        touchZoomImage.style.transform = `scale(${scale})`;
+        initialDistance = currentDistance;
+        e.preventDefault();
+      }
+    }, { passive: false });
+
+    document.addEventListener('touchend', () => {
+      initialDistance = null;
+      touchZoomImage = null;
+    });
+
+    window.addEventListener('orientationchange', () => {
+      setTimeout(() => {
+        if (swiper) swiper.update();
+      }, 500);
+    });
+  </script>
+</body>
+</html>
