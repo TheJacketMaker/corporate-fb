@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+  <title>Coverflow Flipbook</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.css" />
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
+      background: #111;
+      touch-action: none;
+    }
+    .swiper {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.2s ease-in;
+    }
+    .swiper.swiper-loaded {
+      opacity: 1;
+    }
+    .swiper-slide {
+      width: auto;
+      height: auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .slide-inner {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+    }
+    .slide-inner img {
+      width: auto;
+      height: auto;
+      max-height: 90vh;
+      max-width: 90vw;
+      object-fit: contain;
+      border-radius: 12px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+      transition: transform 0.3s ease;
+      touch-action: none;
+      cursor: grab;
+    }
+    .swiper-button-next,
+    .swiper-button-prev {
+      color: white;
+      width: 38px;
+      height: 38px;
+      background-color: transparent;
+      border-radius: 50%;
+    }
+    .swiper-button-next::after,
+    .swiper-button-prev::after {
+      font-size: 22px;
+    }
+  </style>
+</head>
+<body>
+  <div class="swiper" id="swiperContainer" style="visibility: hidden;">
+    <div class="swiper-wrapper" id="swiperWrapper"></div>
+    <div class="swiper-button-next"></div>
+    <div class="swiper-button-prev"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.js"></script>
+  <script>
+    const wrapper = document.getElementById('swiperWrapper');
+    for (let i = 1; i <= 45; i++) {
+      const slide = document.createElement('div');
+      slide.className = 'swiper-slide';
+      slide.innerHTML = `<div class="slide-inner"><img src="pages/page${i}.jpg" /></div>`;
+      wrapper.appendChild(slide);
+    }
+
+    let swiper, scale = 1, panX = 0, panY = 0, isPanning = false, startX = 0, startY = 0;
+    let activeImg = null;
+    let isDragging = false;
+    let lastTap = 0;
+    let lastDistance = 0;
+
+    function resetZoom() {
+      scale = 1;
+      panX = 0;
+      panY = 0;
+      if (activeImg) {
+        activeImg.style.transform = 'scale(1) translate(0px, 0px)';
+        activeImg.style.cursor = 'grab';
+      }
+      swiper.allowTouchMove = true;
+    }
+
+    function applyTransform() {
+      if (activeImg) {
+        activeImg.style.transform = `scale(${scale}) translate(${panX}px, ${panY}px)`;
+      }
+    }
+
+    function getActiveImage() {
+      return document.querySelector('.swiper-slide-active img');
+    }
+
+    window.addEventListener('load', () => {
+      swiper = new Swiper('.swiper', {
+        effect: 'coverflow',
+        grabCursor: true,
+        centeredSlides: true,
+        slidesPerView: 'auto',
+        slideToClickedSlide: true,
+        watchSlidesProgress: true,
+        initialSlide: 0,
+        coverflowEffect: {
+          rotate: 8,
+          stretch: -10,
+          depth: 220,
+          modifier: 1,
+          slideShadows: true
+        },
+        navigation: {
+          nextEl: '.swiper-button-next',
+          prevEl: '.swiper-button-prev',
+        },
+        keyboard: {
+          enabled: true,
+          onlyInViewport: true,
+        },
+        loop: false,
+        on: {
+          init: function () {
+            document.getElementById('swiperContainer').style.visibility = 'visible';
+            document.getElementById('swiperContainer').classList.add('swiper-loaded');
+            activeImg = getActiveImage();
+          },
+          slideChange: function () {
+            activeImg = getActiveImage();
+            resetZoom();
+          }
+        }
+      });
+    });
+
+    // Desktop Zoom
+    document.addEventListener('wheel', (e) => {
+      if (window.innerWidth <= 768) return;
+      activeImg = getActiveImage();
+      if (!activeImg) return;
+      e.preventDefault();
+      const delta = -e.deltaY;
+      const zoomFactor = delta > 0 ? 1.05 : 0.95;
+      scale = Math.min(Math.max(scale * zoomFactor, 1), 4);
+      swiper.allowTouchMove = scale === 1;
+      applyTransform();
+    }, { passive: false });
+
+    // Desktop Pan
+    document.addEventListener('mousedown', (e) => {
+      if (window.innerWidth <= 768 || scale <= 1) return;
+      if (e.button !== 0) return;
+      activeImg = getActiveImage();
+      if (!activeImg) return;
+      isPanning = true;
+      startX = e.clientX - panX;
+      startY = e.clientY - panY;
+      activeImg.style.cursor = 'grabbing';
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (!isPanning || window.innerWidth <= 768 || scale <= 1) return;
+      panX = e.clientX - startX;
+      panY = e.clientY - startY;
+      applyTransform();
+    });
+
+    document.addEventListener('mouseup', () => {
+      if (window.innerWidth <= 768 || !activeImg) return;
+      isPanning = false;
+      activeImg.style.cursor = scale > 1 ? 'grab' : 'default';
+    });
+
+    document.addEventListener('mouseleave', () => {
+      if (window.innerWidth <= 768 || !activeImg) return;
+      isPanning = false;
+      activeImg.style.cursor = scale > 1 ? 'grab' : 'default';
+    });
+
+    document.addEventListener('dblclick', () => {
+      if (window.innerWidth <= 768) return;
+      activeImg = getActiveImage();
+      if (!activeImg) return;
+      if (scale === 1) {
+        scale = 2;
+        swiper.allowTouchMove = false;
+      } else {
+        resetZoom();
+      }
+      applyTransform();
+    });
+
+    // Mobile Zoom & Pan
+    document.addEventListener('touchstart', (e) => {
+      if (window.innerWidth > 768) return;
+      activeImg = getActiveImage();
+      if (!activeImg) return;
+
+      if (e.touches.length === 1) {
+        const now = new Date().getTime();
+        if (now - lastTap < 300) {
+          if (scale === 1) {
+            scale = 2;
+            swiper.allowTouchMove = false;
+          } else {
+            resetZoom();
+          }
+          applyTransform();
+          e.preventDefault();
+        }
+        lastTap = now;
+        startX = e.touches[0].clientX - panX;
+        startY = e.touches[0].clientY - panY;
+        isDragging = true;
+      } else if (e.touches.length === 2) {
+        const dx = e.touches[1].clientX - e.touches[0].clientX;
+        const dy = e.touches[1].clientY - e.touches[0].clientY;
+        lastDistance = Math.sqrt(dx * dx + dy * dy);
+      }
+    });
+
+    document.addEventListener('touchmove', (e) => {
+      if (!activeImg || window.innerWidth > 768) return;
+
+      if (e.touches.length === 1 && isDragging && scale > 1) {
+        panX = e.touches[0].clientX - startX;
+        panY = e.touches[0].clientY - startY;
+        applyTransform();
+      } else if (e.touches.length === 2) {
+        const dx = e.touches[1].clientX - e.touches[0].clientX;
+        const dy = e.touches[1].clientY - e.touches[0].clientY;
+        const newDistance = Math.sqrt(dx * dx + dy * dy);
+        const zoomFactor = newDistance / lastDistance;
+        scale = Math.min(Math.max(scale * zoomFactor, 1), 4);
+        swiper.allowTouchMove = scale === 1;
+        lastDistance = newDistance;
+        applyTransform();
+      }
+    }, { passive: false });
+
+    document.addEventListener('touchend', () => {
+      isDragging = false;
+    });
+
+    document.querySelector('.swiper-button-next').addEventListener('click', resetZoom);
+    document.querySelector('.swiper-button-prev').addEventListener('click', resetZoom);
+
+    window.addEventListener('orientationchange', () => {
+      setTimeout(() => {
+        if (swiper) swiper.update();
+        resetZoom();
+      }, 500);
+    });
+  </script>
+</body>
+</html>
