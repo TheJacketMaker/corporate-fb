@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(heroku buildpacks:set:*)",
+      "Bash(rm:*)"
+    ],
+    "deny": []
+  }
+}
