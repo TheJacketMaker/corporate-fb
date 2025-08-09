@@ -4,12 +4,12 @@ const app = express();
 
 const PORT = process.env.PORT || 3000;
 
-// Serve static files
-app.use(express.static('.'));
+// Serve static files from flipbook-v2 directory
+app.use(express.static('flipbook-v2'));
 
-// Serve index.html for root route
+// Serve flipbook-v2/index.html for root route
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
+  res.sendFile(path.join(__dirname, 'flipbook-v2', 'index.html'));
 });
 
 app.listen(PORT, () => {
