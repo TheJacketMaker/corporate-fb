@@ -3,7 +3,8 @@
     "allow": [
       "Bash(heroku buildpacks:set:*)",
       "Bash(rm:*)",
-      "Bash(npm install)"
+      "Bash(npm install)",
+      "Bash(npm run build:assets:*)"
     ],
     "deny": []
   }

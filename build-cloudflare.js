@@ -129,24 +129,19 @@ function updateHtmlForOptimizedImages(buildDir, useOptimized) {
   let html = fs.readFileSync(htmlPath, 'utf8');
   
   if (useOptimized) {
-    // Update image paths to use optimized versions
-    // This is a basic replacement - you may need to customize based on your HTML structure
-    html = html.replace(/pages\/page(\d+)\.jpg/g, (match, pageNum) => {
-      return `pages/page${pageNum}-desktop.webp`;
-    });
-    
-    // Add picture elements for responsive images
-    html = html.replace(/<img([^>]*src="pages\/page(\d+)-desktop\.webp"[^>]*)>/g, 
-      (match, attrs, pageNum) => {
-        return `<picture>
-          <source media="(max-width: 768px)" srcset="pages/page${pageNum}-mobile.webp" type="image/webp">
-          <source media="(max-width: 1024px)" srcset="pages/page${pageNum}-tablet.webp" type="image/webp">
-          <source srcset="pages/page${pageNum}-desktop.webp" type="image/webp">
-          <source media="(max-width: 768px)" srcset="pages/page${pageNum}-mobile.jpg">
-          <source media="(max-width: 1024px)" srcset="pages/page${pageNum}-tablet.jpg">
-          <img${attrs.replace('-desktop.webp', '-desktop.jpg')}>
-        </picture>`;
-      }
+    // Replace the JavaScript template literal that generates image paths
+    html = html.replace(
+      /slide\.innerHTML = `<div class="slide-inner"><img src="pages\/page\$\{i\}\.jpg" \/><\/div>`;/,
+      `slide.innerHTML = \`<div class="slide-inner">
+        <picture>
+          <source media="(max-width: 768px)" srcset="pages/page\${i}-mobile.webp" type="image/webp">
+          <source media="(max-width: 1024px)" srcset="pages/page\${i}-tablet.webp" type="image/webp">
+          <source srcset="pages/page\${i}-desktop.webp" type="image/webp">
+          <source media="(max-width: 768px)" srcset="pages/page\${i}-mobile.jpg">
+          <source media="(max-width: 1024px)" srcset="pages/page\${i}-tablet.jpg">
+          <img src="pages/page\${i}-desktop.jpg" />
+        </picture>
+      </div>\`;`
     );
   }
   
