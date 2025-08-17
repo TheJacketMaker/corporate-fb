@@ -21,7 +21,7 @@ const configs = {
   }
 };
 
-function optimizeWithSharp(inputPath, outputDir, filename, config) {
+async function optimizeWithSharp(inputPath, outputDir, filename, config) {
   const nameWithoutExt = path.parse(filename).name;
   const webpOutput = path.join(outputDir, `${nameWithoutExt}${config.suffix}.webp`);
   const jpegOutput = path.join(outputDir, `${nameWithoutExt}${config.suffix}.jpg`);
@@ -31,7 +31,7 @@ function optimizeWithSharp(inputPath, outputDir, filename, config) {
     const sharp = require('sharp');
     
     // Create WebP version
-    sharp(inputPath)
+    await sharp(inputPath)
       .resize(config.width, null, { 
         withoutEnlargement: true,
         fit: 'inside'
@@ -40,7 +40,7 @@ function optimizeWithSharp(inputPath, outputDir, filename, config) {
       .toFile(webpOutput);
     
     // Create JPEG fallback
-    sharp(inputPath)
+    await sharp(inputPath)
       .resize(config.width, null, { 
         withoutEnlargement: true,
         fit: 'inside'
@@ -59,7 +59,7 @@ function optimizeWithSharp(inputPath, outputDir, filename, config) {
   }
 }
 
-function buildForCloudflare() {
+async function buildForCloudflare() {
   console.log('Building for Cloudflare Pages...');
   
   const buildDir = './dist';
@@ -98,13 +98,14 @@ function buildForCloudflare() {
   
   if (useSharp) {
     // Optimize images with Sharp
-    imageFiles.forEach(filename => {
+    for (const filename of imageFiles) {
       const inputPath = path.join(pagesDir, filename);
+      console.log(`Optimizing ${filename}...`);
       
-      Object.entries(configs).forEach(([configName, config]) => {
-        optimizeWithSharp(inputPath, optimizedDir, filename, config);
-      });
-    });
+      for (const [configName, config] of Object.entries(configs)) {
+        await optimizeWithSharp(inputPath, optimizedDir, filename, config);
+      }
+    }
   } else {
     // Fallback: copy original images
     imageFiles.forEach(filename => {
@@ -172,4 +173,4 @@ function createHeadersFile(buildDir) {
 }
 
 // Run build
-buildForCloudflare();
+buildForCloudflare().catch(console.error);

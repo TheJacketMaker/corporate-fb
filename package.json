@@ -10,7 +10,7 @@
     "build:images:flipbook": "node build-images.js ./flipbook-v2/pages ./flipbook-v2/optimized-images"
   },
   "engines": {
-    "node": "18.x"
+    "node": ">=18.0.0"
   },
   "dependencies": {
     "express": "^4.18.2"
