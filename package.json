@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "build": "node build-cloudflare.js",
+    "build:assets": "node build-cloudflare.js",
     "build:images": "node build-images.js",
     "build:images:flipbook": "node build-images.js ./flipbook-v2/pages ./flipbook-v2/optimized-images"
   },
